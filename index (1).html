@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-Voting OSIS SMAN 1 Maronge</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        /* Toast Animation */
+        .toast-enter {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .toast-exit {
+            transform: translateY(100%);
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 antialiased overflow-x-hidden relative">
+
+    <!-- Toast Notification (Menggantikan alert) -->
+    <div id="toast-container" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none w-full max-w-md px-4"></div>
+
+    <!-- ================= VIEW: LOGIN PEMILIH ================= -->
+    <div id="view-login" class="min-h-screen bg-gradient-to-br from-indigo-900 via-indigo-800 to-blue-900 flex flex-col items-center justify-center p-4 relative">
+        
+        <button onclick="switchView('ADMIN_LOGIN')" class="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-sm font-bold backdrop-blur-sm transition-all flex items-center gap-2 border border-white/20">
+            <i data-lucide="settings" class="w-4 h-4"></i> Admin Panel
+        </button>
+
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative z-10">
+            <div class="text-center mb-8">
+                <div id="login-logo-container" class="mb-4">
+                    <div class="bg-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                        <i data-lucide="shield-check" class="text-indigo-600 w-10 h-10"></i>
+                    </div>
+                </div>
+                <h1 class="text-2xl font-black text-gray-900 mb-1">E-VOTING OSIS</h1>
+                <p class="text-sm text-gray-500 font-medium">SMA Negeri 1 Maronge 2026/2027</p>
+            </div>
+
+            <form onsubmit="handleLogin(event)" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">NIS (Nomor Induk Siswa)</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="users" class="text-gray-400 w-[18px] h-[18px]"></i>
+                        </div>
+                        <input type="text" id="input-nis" class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all bg-gray-50 focus:bg-white" placeholder="Contoh: 12345" required />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Token Akses</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="lock" class="text-gray-400 w-[18px] h-[18px]"></i>
+                        </div>
+                        <input type="password" id="input-token" class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all bg-gray-50 focus:bg-white" placeholder="Ketik token Anda" required />
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all transform active:scale-95 flex justify-center items-center gap-2 mt-2">
+                    <i data-lucide="lock" class="w-[18px] h-[18px]"></i> Masuk ke Bilik Suara
+                </button>
+            </form>
+
+            <div class="mt-8 text-center pt-4 border-t border-gray-100">
+                <p class="text-xs text-gray-400 font-medium leading-relaxed">
+                    Pastikan Anda menjaga kerahasiaan Token Anda.<br/>Pemilihan ini bersifat LUBER JURDIL.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= VIEW: ADMIN LOGIN ================= -->
+    <div id="view-admin-login" class="hidden min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4 relative">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative z-10">
+            <div class="text-center mb-8">
+                <div class="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i data-lucide="settings" class="text-gray-800 w-10 h-10"></i>
+                </div>
+                <h1 class="text-2xl font-black text-gray-900 mb-1">PANEL ADMIN</h1>
+                <p class="text-sm text-gray-500 font-medium">Masuk untuk mengelola sistem</p>
+            </div>
+            
+            <form onsubmit="handleAdminLogin(event)" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Username Admin</label>
+                    <input type="text" id="admin-user" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gray-500 focus:ring-2 outline-none transition-all bg-gray-50" placeholder="Ketik: admin" required />
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Password</label>
+                    <input type="password" id="admin-pass" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gray-500 focus:ring-2 outline-none transition-all bg-gray-50" placeholder="Ketik: admin123" required />
+                </div>
+                <button type="submit" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-3.5 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 mt-2">
+                    Masuk Admin
+                </button>
+                <button type="button" onclick="switchView('LOGIN')" class="w-full text-gray-500 text-sm font-bold mt-4 hover:text-gray-800">
+                    Kembali ke Halaman Pemilih
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ================= VIEW: ADMIN DASHBOARD ================= -->
+    <div id="view-admin" class="hidden min-h-screen pb-10">
+        <header class="bg-gray-900 text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center">
+            <div class="max-w-6xl mx-auto w-full flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <i data-lucide="settings" class="text-gray-300 w-7 h-7"></i>
+                    <h1 class="text-xl font-bold hidden sm:block">Pengaturan Admin Pemilos</h1>
+                </div>
+                <button onclick="switchView('LOGIN')" class="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
+                    <i data-lucide="log-out" class="w-4 h-4"></i> Keluar Admin
+                </button>
+            </div>
+        </header>
+
+        <main class="max-w-6xl mx-auto p-4 mt-6">
+            <!-- Tabs -->
+            <div class="flex bg-white rounded-xl shadow-sm mb-6 overflow-hidden flex-wrap">
+                <button onclick="setActiveAdminTab('kandidat')" id="tab-btn-kandidat" class="flex-1 min-w-[120px] py-4 font-bold flex justify-center items-center gap-2 bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 transition-colors">
+                    <i data-lucide="users" class="hidden sm:block w-[18px] h-[18px]"></i> Data Kandidat
+                </button>
+                <button onclick="setActiveAdminTab('dpt')" id="tab-btn-dpt" class="flex-1 min-w-[120px] py-4 font-bold flex justify-center items-center gap-2 text-gray-500 hover:bg-gray-50 transition-colors">
+                    <i data-lucide="shield-check" class="hidden sm:block w-[18px] h-[18px]"></i> Kelola DPT
+                </button>
+                <button onclick="setActiveAdminTab('pengaturan')" id="tab-btn-pengaturan" class="flex-1 min-w-[120px] py-4 font-bold flex justify-center items-center gap-2 text-gray-500 hover:bg-gray-50 transition-colors">
+                    <i data-lucide="image" class="hidden sm:block w-[18px] h-[18px]"></i> Logo Sistem
+                </button>
+            </div>
+
+            <!-- Tab Content: Kandidat -->
+            <div id="admin-tab-kandidat" class="space-y-4"></div>
+
+            <!-- Tab Content: DPT -->
+            <div id="admin-tab-dpt" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
+                        <i data-lucide="user-plus" class="w-[18px] h-[18px]"></i> Tambah Akun DPT
+                    </h3>
+                    <form onsubmit="handleAddDpt(event)" class="space-y-4">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">NIS (Nomor Induk Siswa)</label>
+                            <input type="text" id="new-dpt-nis" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none" placeholder="Contoh: 2023001" required />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Token Rahasia</label>
+                            <input type="text" id="new-dpt-token" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none" placeholder="Contoh: X7Y8Z" required />
+                        </div>
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors">Tambah DPT Baru</button>
+                    </form>
+                </div>
+                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
+                        <i data-lucide="users" class="w-[18px] h-[18px]"></i> Daftar DPT Terdaftar (<span id="dpt-count"></span> Akun)
+                    </h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[500px]">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-600 text-sm">
+                                    <th class="p-3 border-b font-bold w-12">No</th>
+                                    <th class="p-3 border-b font-bold">NIS</th>
+                                    <th class="p-3 border-b font-bold">Token</th>
+                                    <th class="p-3 border-b font-bold">Status Pemilihan</th>
+                                    <th class="p-3 border-b font-bold text-center">Hapus</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dpt-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab Content: Pengaturan -->
+            <div id="admin-tab-pengaturan" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-100 max-w-2xl">
+                <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
+                    <i data-lucide="image" class="w-[18px] h-[18px]"></i> Ubah Logo Sekolah (Halaman Utama)
+                </h3>
+                <div class="flex flex-col sm:flex-row gap-6 items-center mb-6">
+                    <div class="w-24 h-24 bg-gray-100 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center p-2 flex-shrink-0" id="admin-logo-preview">
+                        <i data-lucide="shield-check" class="text-gray-400 w-10 h-10"></i>
+                    </div>
+                    <div class="flex-1 space-y-2 w-full">
+                        <label class="block text-xs font-bold text-gray-500">Link URL Gambar Logo</label>
+                        <input type="text" id="input-logo-url" oninput="updateLogoState(this.value)" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none text-sm" placeholder="https://contoh.com/logo-sekolah.png" />
+                        <p class="text-xs text-gray-400 leading-relaxed">Masukkan link URL logo resmi sekolah. Kosongkan jika ingin menggunakan logo <i>Shield</i> default.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ================= VIEW: VOTER DASHBOARD ================= -->
+    <div id="view-voter" class="hidden min-h-screen pb-10">
+        <!-- Header -->
+        <header class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-10">
+            <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
+                <div class="flex items-center gap-3">
+                    <div id="voter-header-logo">
+                        <i data-lucide="shield-check" class="text-yellow-400 w-9 h-9"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl md:text-2xl font-bold tracking-wide">PEMILOS 2026/2027</h1>
+                        <p class="text-sm text-indigo-200">SMA NEGERI 1 MARONGE</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="bg-indigo-800 px-4 py-2 rounded-full border border-indigo-700 text-sm flex items-center gap-2 hidden md:flex">
+                        <span class="animate-pulse w-2 h-2 bg-green-400 rounded-full"></span>
+                        Bilik Suara Aktif
+                    </div>
+                    <button onclick="logoutVoter()" class="bg-red-600 hover:bg-red-700 text-white p-2 md:px-4 md:py-2 rounded-full md:rounded-lg shadow-md flex items-center gap-2 transition-colors">
+                        <i data-lucide="log-out" class="w-4 h-4"></i> <span class="hidden md:inline font-bold text-sm">Keluar Bilik</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-6xl mx-auto p-4 mt-4">
+            <!-- Statistik -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-col items-center justify-center text-center">
+                        <i data-lucide="users" class="text-indigo-600 mb-2 w-7 h-7"></i>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Total DPT</p>
+                        <p class="text-2xl font-bold text-indigo-900" id="stat-total-dpt">0</p>
+                    </div>
+                    <div class="p-4 bg-green-50 rounded-xl border border-green-100 flex flex-col items-center justify-center text-center">
+                        <i data-lucide="check-circle" class="text-green-600 mb-2 w-7 h-7"></i>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Suara Masuk</p>
+                        <p class="text-2xl font-bold text-green-900" id="stat-suara-masuk">0</p>
+                    </div>
+                    <div class="p-4 bg-red-50 rounded-xl border border-red-100 flex flex-col items-center justify-center text-center">
+                        <i data-lucide="alert-circle" class="text-red-600 mb-2 w-7 h-7"></i>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Belum Memilih</p>
+                        <p class="text-2xl font-bold text-red-900" id="stat-belum-memilih">0</p>
+                    </div>
+                    <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-center">
+                        <i data-lucide="bar-chart-3" class="text-blue-600 mb-2 w-7 h-7"></i>
+                        <p class="text-xs text-gray-500 font-semibold uppercase">Partisipasi</p>
+                        <p class="text-2xl font-bold text-blue-900" id="stat-partisipasi">0%</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kandidat Grid Header -->
+            <div class="mb-4 flex items-center justify-between">
+                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+                    <i data-lucide="users" class="text-indigo-600 w-5 h-5"></i>
+                    Kandidat Calon Ketua & Wakil
+                </h2>
+            </div>
+
+            <!-- Kandidat Grid -->
+            <div id="voter-candidates-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"></div>
+        </main>
+    </div>
+
+    <!-- ================= MODAL KONFIRMASI ================= -->
+    <div id="vote-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform transition-all scale-100">
+            <div class="text-center mb-6">
+                <div id="modal-icon-bg" class="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-lg">
+                    <i data-lucide="info" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Konfirmasi Pilihan</h3>
+                <p class="text-gray-600">
+                    Apakah Anda yakin ingin memberikan suara untuk <b id="modal-paslon-nomor"></b>?
+                </p>
+                <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                    <p class="font-semibold text-gray-800" id="modal-ketua"></p>
+                    <p class="text-sm text-gray-500">&</p>
+                    <p class="font-semibold text-gray-800" id="modal-wakil"></p>
+                </div>
+                <p class="text-xs text-red-500 mt-4 italic">
+                    *Pilihan tidak dapat diubah setelah Anda menekan tombol "Ya, Pilih".
+                </p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="closeModal()" class="flex-1 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors">
+                    Batal
+                </button>
+                <button id="btn-confirm-vote" onclick="executeVote()" class="flex-1 py-3 text-white rounded-xl font-bold shadow-md hover:opacity-90 transition-opacity">
+                    Ya, Pilih
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= JAVASCRIPT LOGIC ================= -->
+    <script>
+        // --- GLOBAL STATES ---
+        let currentNisLoggedIn = null;
+        let logoUrl = '';
+        let selectedCandidateId = null;
+        
+        let dptList = [
+            { nis: '12345', token: '12345', hasVoted: false },
+            { nis: '54321', token: '54321', hasVoted: false }
+        ];
+
+        let candidates = [
+            { id: 1, nomor: "01", ketua: "Ahmad Rizky", wakil: "Siti Nurhaliza", visi: "Mewujudkan OSIS yang interaktif, kreatif, dan berakhlak mulia.", suara: 120, color: "bg-red-500", img: "https://ui-avatars.com/api/?name=Ahmad+Siti&background=ef4444&color=fff&size=200&font-size=0.33" },
+            { id: 2, nomor: "02", ketua: "Bima Arya", wakil: "Dian Sastrowardoyo", visi: "Meningkatkan prestasi akademik dan non-akademik siswa SMAN 1 Maronge.", suara: 85, color: "bg-blue-500", img: "https://ui-avatars.com/api/?name=Bima+Dian&background=3b82f6&color=fff&size=200&font-size=0.33" },
+            { id: 3, nomor: "03", ketua: "Candra Wijaya", wakil: "Eka Putri", visi: "Menjadikan sekolah sebagai lingkungan yang ramah, bersih, dan disiplin.", suara: 210, color: "bg-green-500", img: "https://ui-avatars.com/api/?name=Candra+Eka&background=22c55e&color=fff&size=200&font-size=0.33" },
+            { id: 4, nomor: "04", ketua: "Dimas Anggara", wakil: "Fatimah Az Zahra", visi: "Optimalisasi ekstrakurikuler sebagai wadah minat dan bakat siswa.", suara: 45, color: "bg-yellow-500", img: "https://ui-avatars.com/api/?name=Dimas+Fatimah&background=eab308&color=fff&size=200&font-size=0.33" }
+        ];
+
+        // --- CUSTOM TOAST NOTIFICATION (REPLACES ALERT) ---
+        function showMessage(msg, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-gray-800';
+            let icon = 'info';
+            
+            if (type === 'error') { bgClass = 'bg-red-600'; icon = 'alert-circle'; }
+            if (type === 'success') { bgClass = 'bg-green-600'; icon = 'check-circle'; }
+            if (type === 'warning') { bgClass = 'bg-yellow-500'; icon = 'alert-triangle'; }
+
+            toast.className = `flex items-center gap-3 ${bgClass} text-white px-4 py-3 rounded-xl shadow-xl font-medium text-sm transition-all duration-300 toast-exit`;
+            
+            toast.innerHTML = `
+                <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
+                <span>${msg}</span>
+            `;
+
+            container.appendChild(toast);
+            lucide.createIcons({ root: toast });
+
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('toast-exit');
+                toast.classList.add('toast-enter');
+            });
+
+            // Remove after 3.5 seconds
+            setTimeout(() => {
+                toast.classList.remove('toast-enter');
+                toast.classList.add('toast-exit');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // --- NAVIGATION & VIEWS ---
+        function switchView(viewName) {
+            document.getElementById('view-login').classList.add('hidden');
+            document.getElementById('view-admin-login').classList.add('hidden');
+            document.getElementById('view-admin').classList.add('hidden');
+            document.getElementById('view-voter').classList.add('hidden');
+
+            if (viewName === 'LOGIN') {
+                document.getElementById('view-login').classList.remove('hidden');
+                document.getElementById('input-nis').value = '';
+                document.getElementById('input-token').value = '';
+            } else if (viewName === 'ADMIN_LOGIN') {
+                document.getElementById('view-admin-login').classList.remove('hidden');
+                document.getElementById('admin-user').value = '';
+                document.getElementById('admin-pass').value = '';
+            } else if (viewName === 'ADMIN') {
+                document.getElementById('view-admin').classList.remove('hidden');
+                renderAdminCandidates();
+                renderAdminDPT();
+            } else if (viewName === 'VOTER') {
+                document.getElementById('view-voter').classList.remove('hidden');
+                renderVoterDashboard();
+            }
+            lucide.createIcons();
+        }
+
+        // --- ADMIN AUTH & TAB LOGIC ---
+        function handleAdminLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('admin-user').value;
+            const pass = document.getElementById('admin-pass').value;
+            if (user === 'admin' && pass === 'admin123') {
+                switchView('ADMIN');
+                showMessage('Berhasil login sebagai Admin', 'success');
+            } else {
+                showMessage('Username atau Password Admin salah!', 'error');
+            }
+        }
+
+        function setActiveAdminTab(tabName) {
+            // Reset tabs
+            const tabs = ['kandidat', 'dpt', 'pengaturan'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const content = document.getElementById(`admin-tab-${t}`);
+                
+                btn.className = `flex-1 min-w-[120px] py-4 font-bold flex justify-center items-center gap-2 transition-colors ${t === tabName ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600' : 'text-gray-500 hover:bg-gray-50'}`;
+                content.classList.add('hidden');
+            });
+            
+            document.getElementById(`admin-tab-${tabName}`).classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        // --- ADMIN DPT LOGIC ---
+        function renderAdminDPT() {
+            const tbody = document.getElementById('dpt-table-body');
+            document.getElementById('dpt-count').innerText = dptList.length;
+            tbody.innerHTML = '';
+
+            if (dptList.length === 0) {
+                tbody.innerHTML = `<tr><td colSpan="5" class="p-6 text-center text-gray-400">Belum ada data DPT yang didaftarkan.</td></tr>`;
+                return;
+            }
+
+            dptList.forEach((dpt, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = 'border-b last:border-0 hover:bg-gray-50';
+                tr.innerHTML = `
+                    <td class="p-3 text-sm text-gray-600">${idx + 1}</td>
+                    <td class="p-3 font-semibold text-gray-800">${dpt.nis}</td>
+                    <td class="p-3 font-mono text-sm text-gray-500">${dpt.token}</td>
+                    <td class="p-3 text-sm">
+                        ${dpt.hasVoted 
+                            ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded-md font-bold text-xs">Sudah Memilih</span>'
+                            : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded-md font-bold text-xs">Belum Memilih</span>'
+                        }
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="deleteDpt('${dpt.nis}')" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-lg transition-colors" title="Hapus Akun">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            lucide.createIcons();
+        }
+
+        function handleAddDpt(e) {
+            e.preventDefault();
+            const nis = document.getElementById('new-dpt-nis').value.trim();
+            const token = document.getElementById('new-dpt-token').value.trim();
+
+            if (dptList.find(d => d.nis === nis)) {
+                showMessage('Gagal: NIS tersebut sudah terdaftar!', 'error');
+                return;
+            }
+
+            dptList.push({ nis, token, hasVoted: false });
+            document.getElementById('new-dpt-nis').value = '';
+            document.getElementById('new-dpt-token').value = '';
+            renderAdminDPT();
+            showMessage('Berhasil menambahkan DPT baru', 'success');
+        }
+
+        function deleteDpt(nis) {
+            dptList = dptList.filter(d => d.nis !== nis);
+            renderAdminDPT();
+            showMessage(`Akun NIS ${nis} berhasil dihapus`, 'info');
+        }
+
+        // --- ADMIN KANDIDAT LOGIC ---
+        function renderAdminCandidates() {
+            const container = document.getElementById('admin-tab-kandidat');
+            container.innerHTML = '';
+
+            candidates.forEach(kandidat => {
+                const div = document.createElement('div');
+                div.className = 'bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-6 items-start';
+                div.innerHTML = `
+                    <div class="w-full md:w-1/4">
+                        <p class="font-bold text-gray-800 mb-2">Paslon ${kandidat.nomor}</p>
+                        <img src="${kandidat.img}" alt="Preview" class="w-full aspect-square object-cover rounded-xl bg-gray-100 border border-gray-200" onerror="this.src='https://placehold.co/400x400/eee/999?text=Image+Error'" />
+                    </div>
+                    <div class="w-full md:w-3/4 space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">Nama Calon Ketua</label>
+                                <input type="text" value="${kandidat.ketua}" oninput="updateCandidateState(${kandidat.id}, 'ketua', this.value)" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">Nama Calon Wakil</label>
+                                <input type="text" value="${kandidat.wakil}" oninput="updateCandidateState(${kandidat.id}, 'wakil', this.value)" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none" />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Link URL Foto (Gambar Kandidat)</label>
+                            <input type="text" value="${kandidat.img}" oninput="updateCandidateImg(${kandidat.id}, this.value)" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none text-sm text-blue-600" />
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">Visi & Misi</label>
+                            <textarea oninput="updateCandidateState(${kandidat.id}, 'visi', this.value)" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none" rows="3">${kandidat.visi}</textarea>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateCandidateState(id, field, value) {
+            const index = candidates.findIndex(c => c.id === id);
+            if(index > -1) {
+                candidates[index][field] = value;
+            }
+        }
+
+        function updateCandidateImg(id, value) {
+            updateCandidateState(id, 'img', value);
+            // Re-render specifically for image changes to update preview immediately
+            // Adding a small debounce logic visually by just re-rendering
+            renderAdminCandidates(); 
+        }
+
+        // --- LOGO LOGIC ---
+        function updateLogoState(url) {
+            logoUrl = url;
+            renderLogos();
+        }
+
+        function renderLogos() {
+            // Update UI elements that display the logo based on logoUrl
+            const loginLogoHTML = logoUrl 
+                ? `<img src="${logoUrl}" alt="Logo SMAN" class="w-24 h-24 mx-auto object-contain drop-shadow-md" onerror="this.src='https://placehold.co/100x100/eee/999?text=Error'"/>`
+                : `<div class="bg-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-inner"><i data-lucide="shield-check" class="text-indigo-600 w-10 h-10"></i></div>`;
+            document.getElementById('login-logo-container').innerHTML = loginLogoHTML;
+
+            const adminPreviewHTML = logoUrl 
+                ? `<img src="${logoUrl}" alt="Logo" class="w-full h-full object-contain" onerror="this.src='https://placehold.co/100x100/eee/999?text=Error'"/>`
+                : `<i data-lucide="shield-check" class="text-gray-400 w-10 h-10"></i>`;
+            document.getElementById('admin-logo-preview').innerHTML = adminPreviewHTML;
+
+            const voterHeaderHTML = logoUrl
+                ? `<img src="${logoUrl}" alt="Logo" class="h-10 w-10 object-contain bg-white/20 rounded-lg p-1" onerror="this.src='https://placehold.co/100x100/eee/999?text=Error'"/>`
+                : `<i data-lucide="shield-check" class="text-yellow-400 w-9 h-9"></i>`;
+            document.getElementById('voter-header-logo').innerHTML = voterHeaderHTML;
+
+            lucide.createIcons();
+        }
+
+
+        // --- VOTER LOGIN & DASHBOARD LOGIC ---
+        function handleLogin(e) {
+            e.preventDefault();
+            const inputNis = document.getElementById('input-nis').value.trim();
+            const inputToken = document.getElementById('input-token').value.trim();
+
+            const voter = dptList.find(v => v.nis === inputNis && v.token === inputToken);
+            
+            if (voter) {
+                if (voter.hasVoted) {
+                    showMessage("Gagal: Sistem mencatat Anda sudah memberikan suara sebelumnya.", "error");
+                } else {
+                    currentNisLoggedIn = voter.nis;
+                    switchView('VOTER');
+                    showMessage("Berhasil masuk ke Bilik Suara", "success");
+                }
+            } else {
+                showMessage("Gagal: NIS atau Token tidak terdaftar / salah.", "error");
+            }
+        }
+
+        function logoutVoter() {
+            currentNisLoggedIn = null;
+            switchView('LOGIN');
+        }
+
+        function getVoterHasVotedStatus() {
+            if(!currentNisLoggedIn) return false;
+            const voter = dptList.find(v => v.nis === currentNisLoggedIn);
+            return voter ? voter.hasVoted : false;
+        }
+
+        function renderVoterDashboard() {
+            const totalDPT = dptList.length;
+            const totalSuaraMasuk = candidates.reduce((acc, curr) => acc + curr.suara, 0);
+            const hasVoted = getVoterHasVotedStatus();
+
+            // Update Stats
+            document.getElementById('stat-total-dpt').innerText = totalDPT;
+            document.getElementById('stat-suara-masuk').innerText = totalSuaraMasuk;
+            document.getElementById('stat-belum-memilih').innerText = totalDPT - totalSuaraMasuk;
+            const partisipasi = totalDPT === 0 ? '0' : ((totalSuaraMasuk / totalDPT) * 100).toFixed(1);
+            document.getElementById('stat-partisipasi').innerText = `${partisipasi}%`;
+
+            // Update Grid
+            const grid = document.getElementById('voter-candidates-grid');
+            grid.innerHTML = '';
+
+            candidates.forEach(kandidat => {
+                const percent = totalSuaraMasuk === 0 ? 0 : ((kandidat.suara / totalSuaraMasuk) * 100).toFixed(1);
+                
+                let btnHtml = '';
+                if(hasVoted) {
+                    btnHtml = `<button disabled class="w-full py-3 rounded-xl font-bold text-white transition-all bg-gray-300 cursor-not-allowed">SUDAH MEMILIH</button>`;
+                } else {
+                    btnHtml = `<button onclick="openModal(${kandidat.id})" class="w-full py-3 rounded-xl font-bold text-white transition-all transform active:scale-95 ${kandidat.color} hover:opacity-90 shadow-md">PILIH PASLON ${kandidat.nomor}</button>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-2xl shadow-md overflow-hidden flex flex-col relative border border-gray-100 hover:shadow-lg transition-shadow';
+                card.innerHTML = `
+                    <div class="absolute top-0 right-0 ${kandidat.color} text-white font-black text-2xl px-4 py-2 rounded-bl-2xl z-10 shadow-sm">
+                        ${kandidat.nomor}
+                    </div>
+                    <div class="h-48 bg-gray-200 relative">
+                        <img src="${kandidat.img}" alt="Paslon ${kandidat.nomor}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x400/eee/999?text=Image+Error'"/>
+                    </div>
+                    <div class="p-4 flex-grow flex flex-col">
+                        <div class="mb-3">
+                            <p class="text-xs text-gray-500 font-bold tracking-wider uppercase mb-1">Calon Ketua</p>
+                            <h3 class="text-lg font-bold text-gray-800 leading-tight">${kandidat.ketua}</h3>
+                            <div class="h-px w-full bg-gray-200 my-2"></div>
+                            <p class="text-xs text-gray-500 font-bold tracking-wider uppercase mb-1">Calon Wakil</p>
+                            <h3 class="text-lg font-bold text-gray-800 leading-tight">${kandidat.wakil}</h3>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 mb-4 flex-grow">
+                            <p class="text-xs text-gray-600 italic line-clamp-3">"${kandidat.visi}"</p>
+                        </div>
+                        <div class="mb-4">
+                            <div class="flex justify-between items-end mb-1">
+                                <span class="text-sm font-semibold text-gray-600">Perolehan Suara</span>
+                                <span class="text-xl font-black text-indigo-900">${kandidat.suara}</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="h-2.5 rounded-full ${kandidat.color}" style="width: ${percent}%"></div>
+                            </div>
+                            <p class="text-xs text-right text-gray-500 mt-1">${percent}% dari suara masuk</p>
+                        </div>
+                        ${btnHtml}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- MODAL & VOTING ACTION ---
+        function openModal(id) {
+            if(getVoterHasVotedStatus()) {
+                showMessage('Anda sudah memberikan suara!', 'warning');
+                return;
+            }
+
+            const kandidat = candidates.find(c => c.id === id);
+            if(!kandidat) return;
+
+            selectedCandidateId = id;
+            
+            // Set Modal Info
+            document.getElementById('modal-paslon-nomor').innerText = `Paslon ${kandidat.nomor}`;
+            document.getElementById('modal-ketua').innerText = kandidat.ketua;
+            document.getElementById('modal-wakil').innerText = kandidat.wakil;
+            
+            const iconBg = document.getElementById('modal-icon-bg');
+            // Remove previous color classes, keeping base classes
+            iconBg.className = `w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-white shadow-lg ${kandidat.color}`;
+            
+            const btnConfirm = document.getElementById('btn-confirm-vote');
+            btnConfirm.className = `flex-1 py-3 text-white rounded-xl font-bold shadow-md hover:opacity-90 transition-opacity ${kandidat.color}`;
+
+            document.getElementById('vote-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('vote-modal').classList.add('hidden');
+            selectedCandidateId = null;
+        }
+
+        function executeVote() {
+            if(selectedCandidateId === null || !currentNisLoggedIn) return;
+            
+            // Update Candidate Score
+            const kandidatIndex = candidates.findIndex(c => c.id === selectedCandidateId);
+            if(kandidatIndex > -1) {
+                candidates[kandidatIndex].suara += 1;
+                
+                // Update DPT Status
+                const voterIndex = dptList.findIndex(v => v.nis === currentNisLoggedIn);
+                if(voterIndex > -1) {
+                    dptList[voterIndex].hasVoted = true;
+                }
+
+                closeModal();
+                showMessage(`Berhasil! Suara Anda untuk Paslon ${candidates[kandidatIndex].nomor} telah masuk.`, 'success');
+                
+                // Re-render UI to update stats and disable buttons
+                renderVoterDashboard();
+            }
+        }
+
+        // --- INITIALIZATION ---
+        window.onload = () => {
+            lucide.createIcons();
+            // Start at Login
+            switchView('LOGIN');
+            // Initialize Default logo
+            renderLogos();
+        };
+    </script>
+</body>
+</html>
