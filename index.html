@@ -3,729 +3,785 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Voting OSIS SMAN 1 Maronge</title>
-    
+    <title>E-Voting OSIS</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-        
-        /* Custom scrollbar for better aesthetics */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9; 
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1; 
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8; 
-        }
-
-        /* Toast Animation */
-        .toast-enter {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        .toast-exit {
-            transform: translateY(100%);
-            opacity: 0;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f3f4f6; }
+        .candidate-card:hover { transform: translateY(-5px); transition: transform 0.3s ease; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .scroll-hidden::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800 antialiased overflow-x-hidden relative">
+<body>
+    <div id="root"></div>
 
-    <!-- Toast Notification (Menggantikan alert) -->
-    <div id="toast-container" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-[100] flex flex-col gap-2 pointer-events-none w-full max-w-md px-4"></div>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { getFirestore, collection, query, onSnapshot, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    <!-- ================= VIEW: LOGIN PEMILIH ================= -->
-    <div id="view-login" class="min-h-screen bg-gradient-to-br from-indigo-900 via-indigo-800 to-blue-900 flex flex-col items-center justify-center p-4 relative">
-        
-        <button onclick="switchView('ADMIN_LOGIN')" class="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl text-sm font-bold backdrop-blur-sm transition-all flex items-center gap-2 border border-white/20">
-            <i data-lucide="settings" class="w-4 h-4"></i> Admin Panel
-        </button>
-
-        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative z-10">
-            <div class="text-center mb-8">
-                <div id="login-logo-container" class="mb-4">
-                    <div class="bg-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-inner">
-                        <i data-lucide="shield-check" class="text-indigo-600 w-10 h-10"></i>
-                    </div>
-                </div>
-                <h1 class="text-2xl font-black text-gray-900 mb-1">E-VOTING OSIS</h1>
-                <p class="text-sm text-gray-500 font-medium">SMA Negeri 1 Maronge 2026/2027</p>
-            </div>
-
-            <form onsubmit="handleLogin(event)" class="space-y-5">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">NIS (Nomor Induk Siswa)</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i data-lucide="users" class="text-gray-400 w-[18px] h-[18px]"></i>
-                        </div>
-                        <input type="text" id="input-nis" class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all bg-gray-50 focus:bg-white" placeholder="Contoh: 12345" required />
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Token Akses</label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i data-lucide="lock" class="text-gray-400 w-[18px] h-[18px]"></i>
-                        </div>
-                        <input type="password" id="input-token" class="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none transition-all bg-gray-50 focus:bg-white" placeholder="Ketik token Anda" required />
-                    </div>
-                </div>
-
-                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-indigo-500/30 transition-all transform active:scale-95 flex justify-center items-center gap-2 mt-2">
-                    <i data-lucide="lock" class="w-[18px] h-[18px]"></i> Masuk ke Bilik Suara
-                </button>
-            </form>
-
-            <div class="mt-8 text-center pt-4 border-t border-gray-100">
-                <p class="text-xs text-gray-400 font-medium leading-relaxed">
-                    Pastikan Anda menjaga kerahasiaan Token Anda.<br/>Pemilihan ini bersifat LUBER JURDIL.
-                </p>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= VIEW: ADMIN LOGIN ================= -->
-    <div id="view-admin-login" class="hidden min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center p-4 relative">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 relative z-10">
-            <div class="text-center mb-8">
-                <div class="bg-gray-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i data-lucide="settings" class="text-gray-800 w-10 h-10"></i>
-                </div>
-                <h1 class="text-2xl font-black text-gray-900 mb-1">PANEL ADMIN</h1>
-                <p class="text-sm text-gray-500 font-medium">Masuk untuk mengelola sistem</p>
-            </div>
-            
-            <form onsubmit="handleAdminLogin(event)" class="space-y-5">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Username Admin</label>
-                    <input type="text" id="admin-user" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gray-500 focus:ring-2 outline-none transition-all bg-gray-50" placeholder="Ketik: admin" required />
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Password</label>
-                    <input type="password" id="admin-pass" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gray-500 focus:ring-2 outline-none transition-all bg-gray-50" placeholder="Ketik: admin123" required />
-                </div>
-                <button type="submit" class="w-full bg-gray-800 hover:bg-gray-900 text-white font-bold py-3.5 rounded-xl shadow-lg transition-all flex justify-center items-center gap-2 mt-2">
-                    Masuk Admin
-                </button>
-                <button type="button" onclick="switchView('LOGIN')" class="w-full text-gray-500 text-sm font-bold mt-4 hover:text-gray-800">
-                    Kembali ke Halaman Pemilih
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- ================= VIEW: ADMIN DASHBOARD ================= -->
-    <div id="view-admin" class="hidden min-h-screen pb-10">
-        <header class="bg-gray-900 text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center">
-            <div class="max-w-6xl mx-auto w-full flex justify-between items-center">
-                <div class="flex items-center gap-3">
-                    <i data-lucide="settings" class="text-gray-300 w-7 h-7"></i>
-                    <h1 class="text-xl font-bold hidden sm:block">Pengaturan Admin Pemilos</h1>
-                </div>
-                <button onclick="switchView('LOGIN')" class="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm font-bold transition-colors">
-                    <i data-lucide="log-out" class="w-4 h-4"></i> Keluar Admin
-                </button>
-            </div>
-        </header>
-
-        <main class="max-w-6xl mx-auto p-4 mt-6">
-            <!-- Tabs -->
-            <div class="flex bg-white rounded-xl shadow-sm mb-6 overflow-hidden flex-wrap">
-                <button onclick="setActiveAdminTab('kandidat')" id="tab-btn-kandidat" class="flex-1 min-w-[120px] py-4 font-bold flex justify-center items-center gap-2 bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600 transition-colors">
-                    <i data-lucide="users" class="hidden sm:block w-[18px] h-[18px]"></i> Data Kandidat
-                </button>
-                <button onclick="setActiveAdminTab('dpt')" id="tab-btn-dpt" class="flex-1 min-w-[120px] py-4 font-bold flex justify-center items-center gap-2 text-gray-500 hover:bg-gray-50 transition-colors">
-                    <i data-lucide="shield-check" class="hidden sm:block w-[18px] h-[18px]"></i> Kelola DPT
-                </button>
-                <button onclick="setActiveAdminTab('pengaturan')" id="tab-btn-pengaturan" class="flex-1 min-w-[120px] py-4 font-bold flex justify-center items-center gap-2 text-gray-500 hover:bg-gray-50 transition-colors">
-                    <i data-lucide="image" class="hidden sm:block w-[18px] h-[18px]"></i> Logo Sistem
-                </button>
-            </div>
-
-            <!-- Tab Content: Kandidat -->
-            <div id="admin-tab-kandidat" class="space-y-4"></div>
-
-            <!-- Tab Content: DPT -->
-            <div id="admin-tab-dpt" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="lg:col-span-1 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-fit">
-                    <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
-                        <i data-lucide="user-plus" class="w-[18px] h-[18px]"></i> Tambah Akun DPT
-                    </h3>
-                    <form onsubmit="handleAddDpt(event)" class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1">NIS (Nomor Induk Siswa)</label>
-                            <input type="text" id="new-dpt-nis" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none" placeholder="Contoh: 2023001" required />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Token Rahasia</label>
-                            <input type="text" id="new-dpt-token" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none" placeholder="Contoh: X7Y8Z" required />
-                        </div>
-                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-colors">Tambah DPT Baru</button>
-                    </form>
-                </div>
-                <div class="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
-                        <i data-lucide="users" class="w-[18px] h-[18px]"></i> Daftar DPT Terdaftar (<span id="dpt-count"></span> Akun)
-                    </h3>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse min-w-[500px]">
-                            <thead>
-                                <tr class="bg-gray-50 text-gray-600 text-sm">
-                                    <th class="p-3 border-b font-bold w-12">No</th>
-                                    <th class="p-3 border-b font-bold">NIS</th>
-                                    <th class="p-3 border-b font-bold">Token</th>
-                                    <th class="p-3 border-b font-bold">Status Pemilihan</th>
-                                    <th class="p-3 border-b font-bold text-center">Hapus</th>
-                                </tr>
-                            </thead>
-                            <tbody id="dpt-table-body"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Tab Content: Pengaturan -->
-            <div id="admin-tab-pengaturan" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-gray-100 max-w-2xl">
-                <h3 class="font-bold text-gray-800 flex items-center gap-2 mb-4">
-                    <i data-lucide="image" class="w-[18px] h-[18px]"></i> Ubah Logo Sekolah (Halaman Utama)
-                </h3>
-                <div class="flex flex-col sm:flex-row gap-6 items-center mb-6">
-                    <div class="w-24 h-24 bg-gray-100 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center p-2 flex-shrink-0" id="admin-logo-preview">
-                        <i data-lucide="shield-check" class="text-gray-400 w-10 h-10"></i>
-                    </div>
-                    <div class="flex-1 space-y-2 w-full">
-                        <label class="block text-xs font-bold text-gray-500">Link URL Gambar Logo</label>
-                        <input type="text" id="input-logo-url" oninput="updateLogoState(this.value)" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none text-sm" placeholder="https://contoh.com/logo-sekolah.png" />
-                        <p class="text-xs text-gray-400 leading-relaxed">Masukkan link URL logo resmi sekolah. Kosongkan jika ingin menggunakan logo <i>Shield</i> default.</p>
-                    </div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <!-- ================= VIEW: VOTER DASHBOARD ================= -->
-    <div id="view-voter" class="hidden min-h-screen pb-10">
-        <!-- Header -->
-        <header class="bg-indigo-900 text-white p-4 shadow-lg sticky top-0 z-10">
-            <div class="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-3">
-                <div class="flex items-center gap-3">
-                    <div id="voter-header-logo">
-                        <i data-lucide="shield-check" class="text-yellow-400 w-9 h-9"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-xl md:text-2xl font-bold tracking-wide">PEMILOS 2026/2027</h1>
-                        <p class="text-sm text-indigo-200">SMA NEGERI 1 MARONGE</p>
-                    </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="bg-indigo-800 px-4 py-2 rounded-full border border-indigo-700 text-sm flex items-center gap-2 hidden md:flex">
-                        <span class="animate-pulse w-2 h-2 bg-green-400 rounded-full"></span>
-                        Bilik Suara Aktif
-                    </div>
-                    <button onclick="logoutVoter()" class="bg-red-600 hover:bg-red-700 text-white p-2 md:px-4 md:py-2 rounded-full md:rounded-lg shadow-md flex items-center gap-2 transition-colors">
-                        <i data-lucide="log-out" class="w-4 h-4"></i> <span class="hidden md:inline font-bold text-sm">Keluar Bilik</span>
-                    </button>
-                </div>
-            </div>
-        </header>
-
-        <main class="max-w-6xl mx-auto p-4 mt-4">
-            <!-- Statistik -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-6">
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex flex-col items-center justify-center text-center">
-                        <i data-lucide="users" class="text-indigo-600 mb-2 w-7 h-7"></i>
-                        <p class="text-xs text-gray-500 font-semibold uppercase">Total DPT</p>
-                        <p class="text-2xl font-bold text-indigo-900" id="stat-total-dpt">0</p>
-                    </div>
-                    <div class="p-4 bg-green-50 rounded-xl border border-green-100 flex flex-col items-center justify-center text-center">
-                        <i data-lucide="check-circle" class="text-green-600 mb-2 w-7 h-7"></i>
-                        <p class="text-xs text-gray-500 font-semibold uppercase">Suara Masuk</p>
-                        <p class="text-2xl font-bold text-green-900" id="stat-suara-masuk">0</p>
-                    </div>
-                    <div class="p-4 bg-red-50 rounded-xl border border-red-100 flex flex-col items-center justify-center text-center">
-                        <i data-lucide="alert-circle" class="text-red-600 mb-2 w-7 h-7"></i>
-                        <p class="text-xs text-gray-500 font-semibold uppercase">Belum Memilih</p>
-                        <p class="text-2xl font-bold text-red-900" id="stat-belum-memilih">0</p>
-                    </div>
-                    <div class="p-4 bg-blue-50 rounded-xl border border-blue-100 flex flex-col items-center justify-center text-center">
-                        <i data-lucide="bar-chart-3" class="text-blue-600 mb-2 w-7 h-7"></i>
-                        <p class="text-xs text-gray-500 font-semibold uppercase">Partisipasi</p>
-                        <p class="text-2xl font-bold text-blue-900" id="stat-partisipasi">0%</p>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Kandidat Grid Header -->
-            <div class="mb-4 flex items-center justify-between">
-                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <i data-lucide="users" class="text-indigo-600 w-5 h-5"></i>
-                    Kandidat Calon Ketua & Wakil
-                </h2>
-            </div>
-
-            <!-- Kandidat Grid -->
-            <div id="voter-candidates-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"></div>
-        </main>
-    </div>
-
-    <!-- ================= MODAL KONFIRMASI ================= -->
-    <div id="vote-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-60 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 transform transition-all scale-100">
-            <div class="text-center mb-6">
-                <!-- Menampilkan Foto Kandidat pada Modal Konfirmasi -->
-                <img id="modal-kandidat-img" src="" alt="Foto Kandidat" class="w-24 h-24 rounded-full mx-auto mb-4 object-cover border-4 shadow-lg border-white" />
-                
-                <h3 class="text-xl font-bold text-gray-900 mb-2">Konfirmasi Pilihan</h3>
-                <p class="text-gray-600">
-                    Apakah Anda yakin ingin memberikan suara untuk <b id="modal-paslon-nomor"></b>?
-                </p>
-                <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                    <p class="font-semibold text-gray-800" id="modal-ketua"></p>
-                    <p class="text-sm text-gray-500">&</p>
-                    <p class="font-semibold text-gray-800" id="modal-wakil"></p>
-                </div>
-                <p class="text-xs text-red-500 mt-4 italic">
-                    *Pilihan tidak dapat diubah setelah Anda menekan tombol "Ya, Pilih".
-                </p>
-            </div>
-            <div class="flex gap-3">
-                <button onclick="closeModal()" class="flex-1 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors">
-                    Batal
-                </button>
-                <button id="btn-confirm-vote" onclick="executeVote()" class="flex-1 py-3 text-white rounded-xl font-bold shadow-md hover:opacity-90 transition-opacity">
-                    Ya, Pilih
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ================= JAVASCRIPT LOGIC ================= -->
-    <script>
-        // --- GLOBAL STATES ---
-        let currentNisLoggedIn = null;
-        let logoUrl = '';
-        let selectedCandidateId = null;
-        
-        let dptList = [
-            { nis: '12345', token: '12345', hasVoted: false },
-            { nis: '54321', token: '54321', hasVoted: false }
-        ];
-
-        let candidates = [
-            { id: 1, nomor: "01", ketua: "Ahmad Rizky", wakil: "Siti Nurhaliza", visi: "Mewujudkan OSIS yang interaktif, kreatif, dan berakhlak mulia.", suara: 120, color: "bg-red-500", img: "https://drive.google.com/file/d/1mWgLno5YTdjr6-0nXAxBIOY9dFI1uHKF/view?usp=sharing" },
-            { id: 2, nomor: "02", ketua: "Bima Arya", wakil: "Dian Sastrowardoyo", visi: "Meningkatkan prestasi akademik dan non-akademik siswa SMAN 1 Maronge.", suara: 85, color: "bg-blue-500", img: "https://ui-avatars.com/api/?name=Bima+Dian&background=3b82f6&color=fff&size=200&font-size=0.33" },
-            { id: 3, nomor: "03", ketua: "Candra Wijaya", wakil: "Eka Putri", visi: "Menjadikan sekolah sebagai lingkungan yang ramah, bersih, dan disiplin.", suara: 210, color: "bg-green-500", img: "https://ui-avatars.com/api/?name=Candra+Eka&background=22c55e&color=fff&size=200&font-size=0.33" },
-            { id: 4, nomor: "04", ketua: "Dimas Anggara", wakil: "Fatimah Az Zahra", visi: "Optimalisasi ekstrakurikuler sebagai wadah minat dan bakat siswa.", suara: 45, color: "bg-yellow-500", img: "https://ui-avatars.com/api/?name=Dimas+Fatimah&background=eab308&color=fff&size=200&font-size=0.33" }
-        ];
-
-        // --- CUSTOM TOAST NOTIFICATION (REPLACES ALERT) ---
-        function showMessage(msg, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-            
-            let bgClass = 'bg-gray-800';
-            let icon = 'info';
-            
-            if (type === 'error') { bgClass = 'bg-red-600'; icon = 'alert-circle'; }
-            if (type === 'success') { bgClass = 'bg-green-600'; icon = 'check-circle'; }
-            if (type === 'warning') { bgClass = 'bg-yellow-500'; icon = 'alert-triangle'; }
-
-            toast.className = `flex items-center gap-3 ${bgClass} text-white px-4 py-3 rounded-xl shadow-xl font-medium text-sm transition-all duration-300 toast-exit`;
-            
-            toast.innerHTML = `
-                <i data-lucide="${icon}" class="w-5 h-5 flex-shrink-0"></i>
-                <span>${msg}</span>
-            `;
-
-            container.appendChild(toast);
-            lucide.createIcons({ root: toast });
-
-            // Animate in
-            requestAnimationFrame(() => {
-                toast.classList.remove('toast-exit');
-                toast.classList.add('toast-enter');
-            });
-
-            // Remove after 3.5 seconds
-            setTimeout(() => {
-                toast.classList.remove('toast-enter');
-                toast.classList.add('toast-exit');
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
-        }
-
-        // --- NAVIGATION & VIEWS ---
-        function switchView(viewName) {
-            document.getElementById('view-login').classList.add('hidden');
-            document.getElementById('view-admin-login').classList.add('hidden');
-            document.getElementById('view-admin').classList.add('hidden');
-            document.getElementById('view-voter').classList.add('hidden');
-
-            if (viewName === 'LOGIN') {
-                document.getElementById('view-login').classList.remove('hidden');
-                document.getElementById('input-nis').value = '';
-                document.getElementById('input-token').value = '';
-            } else if (viewName === 'ADMIN_LOGIN') {
-                document.getElementById('view-admin-login').classList.remove('hidden');
-                document.getElementById('admin-user').value = '';
-                document.getElementById('admin-pass').value = '';
-            } else if (viewName === 'ADMIN') {
-                document.getElementById('view-admin').classList.remove('hidden');
-                renderAdminCandidates();
-                renderAdminDPT();
-            } else if (viewName === 'VOTER') {
-                document.getElementById('view-voter').classList.remove('hidden');
-                renderVoterDashboard();
-            }
-            lucide.createIcons();
-        }
-
-        // --- ADMIN AUTH & TAB LOGIC ---
-        function handleAdminLogin(e) {
-            e.preventDefault();
-            const user = document.getElementById('admin-user').value;
-            const pass = document.getElementById('admin-pass').value;
-            if (user === 'admin' && pass === 'admin123') {
-                switchView('ADMIN');
-                showMessage('Berhasil login sebagai Admin', 'success');
-            } else {
-                showMessage('Username atau Password Admin salah!', 'error');
-            }
-        }
-
-        function setActiveAdminTab(tabName) {
-            // Reset tabs
-            const tabs = ['kandidat', 'dpt', 'pengaturan'];
-            tabs.forEach(t => {
-                const btn = document.getElementById(`tab-btn-${t}`);
-                const content = document.getElementById(`admin-tab-${t}`);
-                
-                btn.className = `flex-1 min-w-[120px] py-4 font-bold flex justify-center items-center gap-2 transition-colors ${t === tabName ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600' : 'text-gray-500 hover:bg-gray-50'}`;
-                content.classList.add('hidden');
-            });
-            
-            document.getElementById(`admin-tab-${tabName}`).classList.remove('hidden');
-            lucide.createIcons();
-        }
-
-        // --- ADMIN DPT LOGIC ---
-        function renderAdminDPT() {
-            const tbody = document.getElementById('dpt-table-body');
-            document.getElementById('dpt-count').innerText = dptList.length;
-            tbody.innerHTML = '';
-
-            if (dptList.length === 0) {
-                tbody.innerHTML = `<tr><td colSpan="5" class="p-6 text-center text-gray-400">Belum ada data DPT yang didaftarkan.</td></tr>`;
-                return;
-            }
-
-            dptList.forEach((dpt, idx) => {
-                const tr = document.createElement('tr');
-                tr.className = 'border-b last:border-0 hover:bg-gray-50';
-                tr.innerHTML = `
-                    <td class="p-3 text-sm text-gray-600">${idx + 1}</td>
-                    <td class="p-3 font-semibold text-gray-800">${dpt.nis}</td>
-                    <td class="p-3 font-mono text-sm text-gray-500">${dpt.token}</td>
-                    <td class="p-3 text-sm">
-                        ${dpt.hasVoted 
-                            ? '<span class="bg-green-100 text-green-700 px-2 py-1 rounded-md font-bold text-xs">Sudah Memilih</span>'
-                            : '<span class="bg-red-100 text-red-700 px-2 py-1 rounded-md font-bold text-xs">Belum Memilih</span>'
-                        }
-                    </td>
-                    <td class="p-3 text-center">
-                        <button onclick="deleteDpt('${dpt.nis}')" class="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-lg transition-colors" title="Hapus Akun">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                        </button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-            lucide.createIcons();
-        }
-
-        function handleAddDpt(e) {
-            e.preventDefault();
-            const nis = document.getElementById('new-dpt-nis').value.trim();
-            const token = document.getElementById('new-dpt-token').value.trim();
-
-            if (dptList.find(d => d.nis === nis)) {
-                showMessage('Gagal: NIS tersebut sudah terdaftar!', 'error');
-                return;
-            }
-
-            dptList.push({ nis, token, hasVoted: false });
-            document.getElementById('new-dpt-nis').value = '';
-            document.getElementById('new-dpt-token').value = '';
-            renderAdminDPT();
-            showMessage('Berhasil menambahkan DPT baru', 'success');
-        }
-
-        function deleteDpt(nis) {
-            dptList = dptList.filter(d => d.nis !== nis);
-            renderAdminDPT();
-            showMessage(`Akun NIS ${nis} berhasil dihapus`, 'info');
-        }
-
-        // --- ADMIN KANDIDAT LOGIC ---
-        function renderAdminCandidates() {
-            const container = document.getElementById('admin-tab-kandidat');
-            container.innerHTML = '';
-
-            candidates.forEach(kandidat => {
-                const div = document.createElement('div');
-                div.className = 'bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-6 items-start';
-                div.innerHTML = `
-                    <div class="w-full md:w-1/4">
-                        <p class="font-bold text-gray-800 mb-2">Paslon ${kandidat.nomor}</p>
-                        <img src="${kandidat.img}" alt="Preview" class="w-full aspect-square object-cover rounded-xl bg-gray-100 border border-gray-200" onerror="this.src='https://placehold.co/400x400/eee/999?text=Image+Error'" />
-                    </div>
-                    <div class="w-full md:w-3/4 space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1">Nama Calon Ketua</label>
-                                <input type="text" value="${kandidat.ketua}" onchange="updateCandidateState(${kandidat.id}, 'ketua', this.value)" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none" />
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1">Nama Calon Wakil</label>
-                                <input type="text" value="${kandidat.wakil}" onchange="updateCandidateState(${kandidat.id}, 'wakil', this.value)" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none" />
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Link URL Foto (Gambar Kandidat)</label>
-                            <input type="text" value="${kandidat.img}" onchange="updateCandidateImg(${kandidat.id}, this.value)" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none text-sm text-blue-600" />
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1">Visi & Misi</label>
-                            <textarea onchange="updateCandidateState(${kandidat.id}, 'visi', this.value)" class="w-full p-3 rounded-lg border border-gray-200 focus:border-indigo-500 outline-none" rows="3">${kandidat.visi}</textarea>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(div);
-            });
-        }
-
-        function updateCandidateState(id, field, value) {
-            const index = candidates.findIndex(c => c.id === id);
-            if(index > -1) {
-                candidates[index][field] = value;
-            }
-        }
-
-        function updateCandidateImg(id, value) {
-            updateCandidateState(id, 'img', value);
-            // Re-render specifically for image changes to update preview immediately
-            // Adding a small debounce logic visually by just re-rendering
-            renderAdminCandidates(); 
-        }
-
-        // --- LOGO LOGIC ---
-        function updateLogoState(url) {
-            logoUrl = url;
-            renderLogos();
-        }
-
-        function renderLogos() {
-            // Update UI elements that display the logo based on logoUrl
-            const loginLogoHTML = logoUrl 
-                ? `<img src="${logoUrl}" alt="Logo SMAN" class="w-24 h-24 mx-auto object-contain drop-shadow-md" onerror="this.src='https://placehold.co/100x100/eee/999?text=Error'"/>`
-                : `<div class="bg-indigo-100 w-20 h-20 rounded-full flex items-center justify-center mx-auto shadow-inner"><i data-lucide="shield-check" class="text-indigo-600 w-10 h-10"></i></div>`;
-            document.getElementById('login-logo-container').innerHTML = loginLogoHTML;
-
-            const adminPreviewHTML = logoUrl 
-                ? `<img src="${logoUrl}" alt="Logo" class="w-full h-full object-contain" onerror="this.src='https://placehold.co/100x100/eee/999?text=Error'"/>`
-                : `<i data-lucide="shield-check" class="text-gray-400 w-10 h-10"></i>`;
-            document.getElementById('admin-logo-preview').innerHTML = adminPreviewHTML;
-
-            const voterHeaderHTML = logoUrl
-                ? `<img src="${logoUrl}" alt="Logo" class="h-10 w-10 object-contain bg-white/20 rounded-lg p-1" onerror="this.src='https://placehold.co/100x100/eee/999?text=Error'"/>`
-                : `<i data-lucide="shield-check" class="text-yellow-400 w-9 h-9"></i>`;
-            document.getElementById('voter-header-logo').innerHTML = voterHeaderHTML;
-
-            lucide.createIcons();
-        }
-
-
-        // --- VOTER LOGIN & DASHBOARD LOGIC ---
-        function handleLogin(e) {
-            e.preventDefault();
-            const inputNis = document.getElementById('input-nis').value.trim();
-            const inputToken = document.getElementById('input-token').value.trim();
-
-            const voter = dptList.find(v => v.nis === inputNis && v.token === inputToken);
-            
-            if (voter) {
-                if (voter.hasVoted) {
-                    showMessage("Gagal: Sistem mencatat Anda sudah memberikan suara sebelumnya.", "error");
-                } else {
-                    currentNisLoggedIn = voter.nis;
-                    switchView('VOTER');
-                    showMessage("Berhasil masuk ke Bilik Suara", "success");
-                }
-            } else {
-                showMessage("Gagal: NIS atau Token tidak terdaftar / salah.", "error");
-            }
-        }
-
-        function logoutVoter() {
-            currentNisLoggedIn = null;
-            switchView('LOGIN');
-        }
-
-        function getVoterHasVotedStatus() {
-            if(!currentNisLoggedIn) return false;
-            const voter = dptList.find(v => v.nis === currentNisLoggedIn);
-            return voter ? voter.hasVoted : false;
-        }
-
-        function renderVoterDashboard() {
-            const totalDPT = dptList.length;
-            const totalSuaraMasuk = candidates.reduce((acc, curr) => acc + curr.suara, 0);
-            const hasVoted = getVoterHasVotedStatus();
-
-            // Update Stats
-            document.getElementById('stat-total-dpt').innerText = totalDPT;
-            document.getElementById('stat-suara-masuk').innerText = totalSuaraMasuk;
-            document.getElementById('stat-belum-memilih').innerText = totalDPT - totalSuaraMasuk;
-            const partisipasi = totalDPT === 0 ? '0' : ((totalSuaraMasuk / totalDPT) * 100).toFixed(1);
-            document.getElementById('stat-partisipasi').innerText = `${partisipasi}%`;
-
-            // Update Grid
-            const grid = document.getElementById('voter-candidates-grid');
-            grid.innerHTML = '';
-
-            candidates.forEach(kandidat => {
-                const percent = totalSuaraMasuk === 0 ? 0 : ((kandidat.suara / totalSuaraMasuk) * 100).toFixed(1);
-                
-                let btnHtml = '';
-                if(hasVoted) {
-                    btnHtml = `<button disabled class="w-full py-3 rounded-xl font-bold text-white transition-all bg-gray-300 cursor-not-allowed">SUDAH MEMILIH</button>`;
-                } else {
-                    btnHtml = `<button onclick="openModal(${kandidat.id})" class="w-full py-3 rounded-xl font-bold text-white transition-all transform active:scale-95 ${kandidat.color} hover:opacity-90 shadow-md">PILIH PASLON ${kandidat.nomor}</button>`;
-                }
-
-                const card = document.createElement('div');
-                card.className = 'bg-white rounded-2xl shadow-md overflow-hidden flex flex-col relative border border-gray-100 hover:shadow-lg transition-shadow';
-                card.innerHTML = `
-                    <div class="absolute top-0 right-0 ${kandidat.color} text-white font-black text-2xl px-4 py-2 rounded-bl-2xl z-10 shadow-sm">
-                        ${kandidat.nomor}
-                    </div>
-                    <div class="h-48 bg-gray-200 relative">
-                        <img src="${kandidat.img}" alt="Paslon ${kandidat.nomor}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/400x400/eee/999?text=Image+Error'"/>
-                    </div>
-                    <div class="p-4 flex-grow flex flex-col">
-                        <div class="mb-3">
-                            <p class="text-xs text-gray-500 font-bold tracking-wider uppercase mb-1">Calon Ketua</p>
-                            <h3 class="text-lg font-bold text-gray-800 leading-tight">${kandidat.ketua}</h3>
-                            <div class="h-px w-full bg-gray-200 my-2"></div>
-                            <p class="text-xs text-gray-500 font-bold tracking-wider uppercase mb-1">Calon Wakil</p>
-                            <h3 class="text-lg font-bold text-gray-800 leading-tight">${kandidat.wakil}</h3>
-                        </div>
-                        <div class="bg-gray-50 p-3 rounded-xl border border-gray-100 mb-4 flex-grow">
-                            <p class="text-xs text-gray-600 italic line-clamp-3">"${kandidat.visi}"</p>
-                        </div>
-                        <div class="mb-4">
-                            <div class="flex justify-between items-end mb-1">
-                                <span class="text-sm font-semibold text-gray-600">Perolehan Suara</span>
-                                <span class="text-xl font-black text-indigo-900">${kandidat.suara}</span>
-                            </div>
-                            <div class="w-full bg-gray-200 rounded-full h-2.5">
-                                <div class="h-2.5 rounded-full ${kandidat.color}" style="width: ${percent}%"></div>
-                            </div>
-                            <p class="text-xs text-right text-gray-500 mt-1">${percent}% dari suara masuk</p>
-                        </div>
-                        ${btnHtml}
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-        }
-
-        // --- MODAL & VOTING ACTION ---
-        function openModal(id) {
-            if(getVoterHasVotedStatus()) {
-                showMessage('Anda sudah memberikan suara!', 'warning');
-                return;
-            }
-
-            const kandidat = candidates.find(c => c.id === id);
-            if(!kandidat) return;
-
-            selectedCandidateId = id;
-            
-            // Set Modal Info
-            document.getElementById('modal-paslon-nomor').innerText = `Paslon ${kandidat.nomor}`;
-            document.getElementById('modal-ketua').innerText = kandidat.ketua;
-            document.getElementById('modal-wakil').innerText = kandidat.wakil;
-            
-            // Set Modal Photo
-            const modalImg = document.getElementById('modal-kandidat-img');
-            modalImg.src = kandidat.img;
-            
-            // Get border color based on candidate color (e.g. bg-red-500 -> border-red-500)
-            const borderColor = kandidat.color.replace('bg-', 'border-');
-            modalImg.className = `w-24 h-24 rounded-full mx-auto mb-4 object-cover border-4 shadow-lg ${borderColor}`;
-            
-            const btnConfirm = document.getElementById('btn-confirm-vote');
-            btnConfirm.className = `flex-1 py-3 text-white rounded-xl font-bold shadow-md hover:opacity-90 transition-opacity ${kandidat.color}`;
-
-            document.getElementById('vote-modal').classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('vote-modal').classList.add('hidden');
-            selectedCandidateId = null;
-        }
-
-        function executeVote() {
-            if(selectedCandidateId === null || !currentNisLoggedIn) return;
-            
-            // Update Candidate Score
-            const kandidatIndex = candidates.findIndex(c => c.id === selectedCandidateId);
-            if(kandidatIndex > -1) {
-                candidates[kandidatIndex].suara += 1;
-                
-                // Update DPT Status
-                const voterIndex = dptList.findIndex(v => v.nis === currentNisLoggedIn);
-                if(voterIndex > -1) {
-                    dptList[voterIndex].hasVoted = true;
-                }
-
-                closeModal();
-                showMessage(`Berhasil! Suara Anda untuk Paslon ${candidates[kandidatIndex].nomor} telah masuk.`, 'success');
-                
-                // Re-render UI to update stats and disable buttons
-                renderVoterDashboard();
-            }
-        }
-
-        // --- INITIALIZATION ---
-        window.onload = () => {
-            lucide.createIcons();
-            // Start at Login
-            switchView('LOGIN');
-            // Initialize Default logo
-            renderLogos();
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+            projectId: "osis-mock-project"
         };
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'osis-app-default';
+
+        window.firebaseDeps = { auth, db, appId, signInAnonymously, signInWithCustomToken, onAuthStateChanged, collection, query, onSnapshot, doc, updateDoc, setDoc, getDoc, addDoc, deleteDoc };
+    </script>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- KOMPONEN MODAL KUSTOM (Pengganti Alert) ---
+        const Modal = ({ isOpen, title, message, onClose, onConfirm, type = 'alert' }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full transform transition-all">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
+                        <p className="text-gray-600 mb-6">{message}</p>
+                        <div className="flex justify-end space-x-3">
+                            {type === 'confirm' && (
+                                <button onClick={onClose} className="px-4 py-2 text-gray-500 hover:bg-gray-100 rounded-lg transition">Batal</button>
+                            )}
+                            <button onClick={type === 'confirm' ? onConfirm : onClose} 
+                                    className={`px-4 py-2 text-white rounded-lg transition ${type === 'confirm' ? 'bg-blue-600 hover:bg-blue-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}>
+                                {type === 'confirm' ? 'Ya, Lanjutkan' : 'Mengerti'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- KOMPONEN UTAMA APP ---
+        function App() {
+            const [fbUser, setFbUser] = useState(null);
+            const [candidates, setCandidates] = useState([]);
+            const [dpts, setDpts] = useState([]);
+            
+            // App State
+            const [currentUser, setCurrentUser] = useState(null); // { role: 'voter' | 'admin', data: {...} }
+            const [loading, setLoading] = useState(true);
+
+            // Modal State
+            const [modalConfig, setModalConfig] = useState({ isOpen: false, title: '', message: '', type: 'alert', onConfirm: null });
+
+            const showModal = (title, message, type = 'alert', onConfirm = null) => {
+                setModalConfig({ isOpen: true, title, message, type, onConfirm });
+            };
+            const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
+
+            // 1. Inisialisasi Firebase & Auth
+            useEffect(() => {
+                const { auth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } = window.firebaseDeps;
+                
+                const initAuth = async () => {
+                    try {
+                        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                            await signInWithCustomToken(auth, __initial_auth_token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Auth error:", error);
+                        showModal("Error", "Gagal terhubung ke server database.");
+                    }
+                };
+                
+                initAuth();
+                const unsubscribe = onAuthStateChanged(auth, (user) => {
+                    setFbUser(user);
+                    if (!user) setLoading(false);
+                });
+                return () => unsubscribe();
+            }, []);
+
+            // 2. Sinkronisasi Data Real-time (Client mengikuti Server)
+            useEffect(() => {
+                if (!fbUser) return;
+                const { db, appId, collection, query, onSnapshot } = window.firebaseDeps;
+
+                // Listen Candidates
+                const qCandidates = query(collection(db, 'artifacts', appId, 'public', 'data', 'candidates'));
+                const unsubCandidates = onSnapshot(qCandidates, (snap) => {
+                    let cands = [];
+                    snap.forEach(doc => cands.push({ id: doc.id, ...doc.data() }));
+                    // Sort by candidate number
+                    cands.sort((a, b) => (a.nomorUrut || 0) - (b.nomorUrut || 0));
+                    setCandidates(cands);
+                }, (err) => console.error("Candidates error:", err));
+
+                // Listen DPT
+                const qDpt = query(collection(db, 'artifacts', appId, 'public', 'data', 'dpt'));
+                const unsubDpt = onSnapshot(qDpt, (snap) => {
+                    let dptList = [];
+                    snap.forEach(doc => dptList.push({ id: doc.id, ...doc.data() }));
+                    setDpts(dptList);
+                    setLoading(false);
+                }, (err) => console.error("DPT error:", err));
+
+                return () => { unsubCandidates(); unsubDpt(); };
+            }, [fbUser]);
+
+            // Logout
+            const handleLogout = () => {
+                setCurrentUser(null);
+            };
+
+            if (loading) return <div className="flex items-center justify-center min-h-screen bg-gray-50"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div></div>;
+
+            return (
+                <div className="min-h-screen">
+                    {/* Header */}
+                    <header className="bg-indigo-600 text-white shadow-md sticky top-0 z-40">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                <h1 className="text-xl font-bold">e-Voting OSIS</h1>
+                            </div>
+                            {currentUser && (
+                                <div className="flex items-center gap-4">
+                                    <span className="hidden sm:inline text-sm bg-indigo-500 px-3 py-1 rounded-full">
+                                        {currentUser.role === 'admin' ? 'Administrator' : `Pemilih: ${currentUser.data.nama}`}
+                                    </span>
+                                    <button onClick={handleLogout} className="text-sm font-semibold hover:text-indigo-200 transition">Logout</button>
+                                </div>
+                            )}
+                        </div>
+                    </header>
+
+                    {/* Main Content Area */}
+                    <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                        {!currentUser ? (
+                            <LoginView dpts={dpts} setCurrentUser={setCurrentUser} showModal={showModal} />
+                        ) : currentUser.role === 'voter' ? (
+                            <VoterBooth 
+                                user={currentUser.data} 
+                                candidates={candidates} 
+                                showModal={showModal} 
+                                setCurrentUser={setCurrentUser}
+                                currentUser={currentUser}
+                            />
+                        ) : (
+                            <AdminDashboard 
+                                candidates={candidates} 
+                                dpts={dpts} 
+                                showModal={showModal} 
+                            />
+                        )}
+                    </main>
+
+                    <Modal 
+                        isOpen={modalConfig.isOpen} 
+                        title={modalConfig.title} 
+                        message={modalConfig.message} 
+                        type={modalConfig.type} 
+                        onClose={closeModal} 
+                        onConfirm={() => {
+                            if(modalConfig.onConfirm) modalConfig.onConfirm();
+                            closeModal();
+                        }} 
+                    />
+                </div>
+            );
+        }
+
+        // --- KOMPONEN LOGIN ---
+        function LoginView({ dpts, setCurrentUser, showModal }) {
+            const [loginType, setLoginType] = useState('voter');
+            const [nis, setNis] = useState('');
+            const [pin, setPin] = useState('');
+            const [adminUser, setAdminUser] = useState('');
+            const [adminPass, setAdminPass] = useState('');
+
+            const handleVoterLogin = (e) => {
+                e.preventDefault();
+                const voter = dpts.find(d => d.nis === nis && d.pin === pin);
+                if (voter) {
+                    setCurrentUser({ role: 'voter', data: voter });
+                } else {
+                    showModal('Login Gagal', 'NIS atau PIN yang Anda masukkan salah, atau Anda tidak terdaftar dalam DPT.');
+                }
+            };
+
+            const handleAdminLogin = (e) => {
+                e.preventDefault();
+                if (adminUser === 'admin' && adminPass === 'admin123') {
+                    setCurrentUser({ role: 'admin', data: { nama: 'Administrator' } });
+                } else {
+                    showModal('Login Gagal', 'Username atau Password Admin salah.');
+                }
+            };
+
+            return (
+                <div className="max-w-md mx-auto bg-white rounded-xl shadow-lg overflow-hidden mt-10">
+                    <div className="flex border-b">
+                        <button 
+                            className={`flex-1 py-4 text-sm font-medium text-center transition ${loginType === 'voter' ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                            onClick={() => setLoginType('voter')}
+                        >
+                            Masuk sebagai Pemilih (DPT)
+                        </button>
+                        <button 
+                            className={`flex-1 py-4 text-sm font-medium text-center transition ${loginType === 'admin' ? 'bg-indigo-50 text-indigo-700 border-b-2 border-indigo-600' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                            onClick={() => setLoginType('admin')}
+                        >
+                            Masuk sebagai Admin
+                        </button>
+                    </div>
+
+                    <div className="p-8">
+                        {loginType === 'voter' ? (
+                            <form onSubmit={handleVoterLogin} className="space-y-6">
+                                <div className="text-center mb-6">
+                                    <h2 className="text-2xl font-bold text-gray-800">Selamat Datang!</h2>
+                                    <p className="text-gray-500 text-sm mt-1">Gunakan NIS dan PIN untuk memberikan suara.</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nomor Induk Siswa (NIS)</label>
+                                    <input type="text" required value={nis} onChange={e => setNis(e.target.value)} 
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" 
+                                        placeholder="Contoh: 102938" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">PIN Rahasia</label>
+                                    <input type="password" required value={pin} onChange={e => setPin(e.target.value)} 
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" 
+                                        placeholder="Masukkan PIN Anda" />
+                                </div>
+                                <button type="submit" className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition">
+                                    Masuk ke Bilik Suara
+                                </button>
+                            </form>
+                        ) : (
+                            <form onSubmit={handleAdminLogin} className="space-y-6">
+                                <div className="text-center mb-6">
+                                    <h2 className="text-2xl font-bold text-gray-800">Panel Administrator</h2>
+                                    <p className="text-gray-500 text-sm mt-1">Login: admin / admin123</p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Username Admin</label>
+                                    <input type="text" required value={adminUser} onChange={e => setAdminUser(e.target.value)} 
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                    <input type="password" required value={adminPass} onChange={e => setAdminPass(e.target.value)} 
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" />
+                                </div>
+                                <button type="submit" className="w-full bg-gray-800 text-white font-bold py-3 px-4 rounded-lg hover:bg-gray-900 transition">
+                                    Masuk Dashboard
+                                </button>
+                            </form>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // --- KOMPONEN BILIK SUARA (CLIENT) ---
+        function VoterBooth({ user, candidates, showModal, setCurrentUser, currentUser }) {
+            
+            const handleCoblos = (candidate) => {
+                if (user.sudahMemilih) {
+                    showModal('Peringatan', 'Anda sudah memberikan suara sebelumnya. Satu akun hanya dapat memilih satu kali.');
+                    return;
+                }
+
+                showModal(
+                    'Konfirmasi Pilihan', 
+                    `Apakah Anda yakin ingin memilih Paslon No. ${candidate.nomorUrut} (${candidate.ketua} & ${candidate.wakil})? Pilihan tidak dapat diubah setelah disimpan.`,
+                    'confirm',
+                    async () => {
+                        try {
+                            const { db, appId, doc, updateDoc, getDoc } = window.firebaseDeps;
+                            
+                            const candRef = doc(db, 'artifacts', appId, 'public', 'data', 'candidates', candidate.id);
+                            const candSnap = await getDoc(candRef);
+                            if (candSnap.exists()) {
+                                await updateDoc(candRef, { suara: (candSnap.data().suara || 0) + 1 });
+                            }
+
+                            const dptRef = doc(db, 'artifacts', appId, 'public', 'data', 'dpt', user.id);
+                            await updateDoc(dptRef, { sudahMemilih: true });
+                            
+                            const updatedUser = {...user, sudahMemilih: true};
+                            setCurrentUser({...currentUser, data: updatedUser});
+                            
+                            showModal('Berhasil', 'Suara Anda berhasil direkam. Terima kasih atas partisipasi Anda dalam pemilihan ini!');
+                        } catch (err) {
+                            console.error(err);
+                            showModal('Error', 'Terjadi kesalahan saat menyimpan suara. Silakan coba lagi.');
+                        }
+                    }
+                );
+            };
+
+            if (user.sudahMemilih) {
+                return (
+                    <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-md p-10 text-center mt-10">
+                        <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                        <h2 className="text-3xl font-bold text-gray-800 mb-4">Terima Kasih!</h2>
+                        <p className="text-gray-600 text-lg">Anda telah berhasil menyalurkan hak suara Anda. Partisipasi Anda sangat berarti bagi kemajuan OSIS kita.</p>
+                    </div>
+                );
+            }
+
+            if (candidates.length === 0) {
+                return (
+                    <div className="text-center py-20">
+                        <p className="text-gray-500">Admin belum mengatur daftar kandidat. Harap tunggu.</p>
+                    </div>
+                );
+            }
+
+            return (
+                <div>
+                    <div className="text-center mb-10">
+                        <h2 className="text-3xl font-bold text-gray-800 uppercase tracking-wide">Bilik Suara</h2>
+                        <p className="text-gray-600 mt-2">Pilihlah kandidat yang menurut Anda terbaik.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {candidates.map((cand) => (
+                            <div key={cand.id} className="candidate-card bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden flex flex-col h-full relative">
+                                <div className="bg-indigo-600 text-white text-center py-2 font-bold text-xl">
+                                    PASLON {cand.nomorUrut}
+                                </div>
+                                <div className="p-5 flex-grow flex flex-col items-center">
+                                    {/* Candidate Photo Container */}
+                                    <div className="w-32 h-32 bg-gray-200 rounded-full mb-4 flex items-center justify-center border-4 border-white shadow-md overflow-hidden relative">
+                                        {cand.foto ? (
+                                            <img src={cand.foto} alt={`Paslon ${cand.nomorUrut}`} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <svg className="w-16 h-16 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>
+                                        )}
+                                    </div>
+                                    
+                                    <div className="text-center w-full mb-4">
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Calon Ketua</p>
+                                        <p className="font-bold text-gray-800 text-lg">{cand.ketua}</p>
+                                        <div className="my-2 border-t border-gray-200 w-1/2 mx-auto"></div>
+                                        <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Calon Wakil</p>
+                                        <p className="font-bold text-gray-800 text-lg">{cand.wakil}</p>
+                                    </div>
+
+                                    <div className="bg-gray-50 p-3 rounded-lg w-full text-sm text-gray-600 flex-grow mb-4 scroll-hidden overflow-y-auto" style={{maxHeight: '120px'}}>
+                                        <p className="font-semibold text-gray-700 mb-1">Visi:</p>
+                                        <p className="italic mb-2">{cand.visi}</p>
+                                        <p className="font-semibold text-gray-700 mb-1">Misi:</p>
+                                        <ul className="list-disc pl-4 space-y-1">
+                                            {cand.misi.split('\n').map((m, i) => m.trim() && <li key={i}>{m.trim()}</li>)}
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <div className="p-4 border-t border-gray-100 mt-auto">
+                                    <button 
+                                        onClick={() => handleCoblos(cand)}
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transform transition hover:scale-105 flex justify-center items-center gap-2">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                        COBLOS NOMOR {cand.nomorUrut}
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // --- KOMPONEN DASHBOARD ADMIN (SERVER) ---
+        function AdminDashboard({ candidates, dpts, showModal }) {
+            const [activeTab, setActiveTab] = useState('hasil');
+            const { db, appId, doc, setDoc } = window.firebaseDeps;
+
+            const handleInitData = async () => {
+                showModal('Inisialisasi Data', 'Sistem akan membuat 4 slot kandidat kosong secara default. Lanjutkan?', 'confirm', async () => {
+                    for(let i=1; i<=4; i++) {
+                        const ref = doc(db, 'artifacts', appId, 'public', 'data', 'candidates', `cand_${i}`);
+                        await setDoc(ref, {
+                            nomorUrut: i,
+                            ketua: `Nama Ketua ${i}`,
+                            wakil: `Nama Wakil ${i}`,
+                            visi: "Visi kandidat...",
+                            misi: "Misi 1\nMisi 2",
+                            foto: "",
+                            suara: 0
+                        });
+                    }
+                    showModal('Sukses', '4 Slot kandidat berhasil dibuat.');
+                });
+            };
+
+            const totalSuara = candidates.reduce((acc, curr) => acc + (curr.suara || 0), 0);
+            const totalPemilih = dpts.length;
+            const suaraMasuk = dpts.filter(d => d.sudahMemilih).length;
+
+            return (
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    <div className="flex bg-gray-50 border-b border-gray-200 overflow-x-auto">
+                        <button onClick={() => setActiveTab('hasil')} className={`px-6 py-4 font-semibold text-sm whitespace-nowrap transition ${activeTab === 'hasil' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                            📊 Hasil Perolehan Suara
+                        </button>
+                        <button onClick={() => setActiveTab('kandidat')} className={`px-6 py-4 font-semibold text-sm whitespace-nowrap transition ${activeTab === 'kandidat' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                            👥 Kelola Kandidat (Sinkron Real-time)
+                        </button>
+                        <button onClick={() => setActiveTab('dpt')} className={`px-6 py-4 font-semibold text-sm whitespace-nowrap transition ${activeTab === 'dpt' ? 'text-indigo-600 border-b-2 border-indigo-600 bg-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                            📝 Kelola DPT
+                        </button>
+                    </div>
+
+                    <div className="p-6">
+                        {activeTab === 'hasil' && (
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-lg text-center">
+                                        <p className="text-sm text-blue-600 font-semibold mb-1">Total DPT</p>
+                                        <p className="text-3xl font-bold text-blue-900">{totalPemilih}</p>
+                                    </div>
+                                    <div className="bg-green-50 border border-green-100 p-4 rounded-lg text-center">
+                                        <p className="text-sm text-green-600 font-semibold mb-1">Suara Masuk</p>
+                                        <p className="text-3xl font-bold text-green-900">{suaraMasuk}</p>
+                                    </div>
+                                    <div className="bg-yellow-50 border border-yellow-100 p-4 rounded-lg text-center">
+                                        <p className="text-sm text-yellow-600 font-semibold mb-1">Golput / Belum Memilih</p>
+                                        <p className="text-3xl font-bold text-yellow-900">{totalPemilih - suaraMasuk}</p>
+                                    </div>
+                                </div>
+
+                                {candidates.length === 0 ? (
+                                    <div className="text-center py-10">
+                                        <p className="text-gray-500 mb-4">Belum ada data kandidat di server.</p>
+                                        <button onClick={handleInitData} className="bg-indigo-600 text-white px-4 py-2 rounded-lg">Buat 4 Slot Kandidat</button>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4 mt-8">
+                                        <h3 className="font-bold text-gray-800 text-lg">Grafik Perolehan</h3>
+                                        {candidates.map(cand => {
+                                            const percent = totalSuara === 0 ? 0 : Math.round((cand.suara / totalSuara) * 100);
+                                            return (
+                                                <div key={cand.id} className="mb-4">
+                                                    <div className="flex justify-between text-sm font-semibold mb-1">
+                                                        <span>Paslon {cand.nomorUrut} ({cand.ketua} & {cand.wakil})</span>
+                                                        <span>{cand.suara} Suara ({percent}%)</span>
+                                                    </div>
+                                                    <div className="w-full bg-gray-200 rounded-full h-4">
+                                                        <div className="bg-indigo-600 h-4 rounded-full transition-all duration-500" style={{width: `${percent}%`}}></div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'kandidat' && (
+                            <AdminKandidatTab candidates={candidates} handleInitData={handleInitData} showModal={showModal} />
+                        )}
+
+                        {activeTab === 'dpt' && (
+                            <AdminDPTTab dpts={dpts} showModal={showModal} />
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        // Sub-komponen: Kelola Kandidat (Dengan Fitur Upload Foto)
+        function AdminKandidatTab({ candidates, handleInitData, showModal }) {
+            const [editingId, setEditingId] = useState(null);
+            const [editForm, setEditForm] = useState({});
+            
+            const handleEditClick = (cand) => {
+                setEditingId(cand.id);
+                setEditForm({ ...cand, foto: cand.foto || '' });
+            };
+
+            // Fungsi penanganan upload foto dari perangkat
+            const handleFileChange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                if (file.size > 2 * 1024 * 1024) {
+                    showModal('Peringatan', 'Ukuran foto terlalu besar. Gunakan foto di bawah 2MB.');
+                    return;
+                }
+
+                // Kompres dan ubah ke Data URL (Base64) agar ringan disimpan di Firestore
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const MAX_WIDTH = 350;
+                        const MAX_HEIGHT = 350;
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > MAX_WIDTH) {
+                                height *= MAX_WIDTH / width;
+                                width = MAX_WIDTH;
+                            }
+                        } else {
+                            if (height > MAX_HEIGHT) {
+                                width *= MAX_HEIGHT / height;
+                                height = MAX_HEIGHT;
+                            }
+                        }
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                        setEditForm(prev => ({ ...prev, foto: resizedDataUrl }));
+                    };
+                    img.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            };
+
+            const handleSave = async () => {
+                try {
+                    const { db, appId, doc, updateDoc } = window.firebaseDeps;
+                    const ref = doc(db, 'artifacts', appId, 'public', 'data', 'candidates', editingId);
+                    await updateDoc(ref, {
+                        ketua: editForm.ketua,
+                        wakil: editForm.wakil,
+                        visi: editForm.visi,
+                        misi: editForm.misi,
+                        foto: editForm.foto || ''
+                    });
+                    setEditingId(null);
+                    showModal('Tersimpan', 'Data & foto kandidat berhasil diperbarui. Foto akan langsung tampil di bilik suara pemilih.');
+                } catch (err) {
+                    console.error(err);
+                    showModal('Error', 'Gagal menyimpan perubahan.');
+                }
+            };
+
+            const handleResetSuara = () => {
+                showModal('Peringatan Ekstrem', 'Yakin ingin mereset SEMUA SUARA menjadi 0?', 'confirm', async () => {
+                    const { db, appId, doc, updateDoc } = window.firebaseDeps;
+                    candidates.forEach(async (c) => {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'candidates', c.id), { suara: 0 });
+                    });
+                });
+            }
+
+            if (candidates.length === 0) {
+                 return (
+                    <div className="text-center py-10">
+                        <button onClick={handleInitData} className="bg-indigo-600 text-white px-4 py-2 rounded-lg">Inisialisasi 4 Kandidat</button>
+                    </div>
+                 );
+            }
+
+            return (
+                <div>
+                    <div className="flex justify-between items-center mb-4">
+                        <p className="text-sm text-gray-500">Edit data & foto di bawah ini. Perubahan akan langsung disinkronkan ke layar bilik suara.</p>
+                        <button onClick={handleResetSuara} className="text-red-600 text-sm border border-red-600 px-3 py-1 rounded hover:bg-red-50">Reset Suara ke 0</button>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {candidates.map(cand => (
+                            <div key={cand.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50 relative">
+                                <div className="absolute top-4 right-4 bg-gray-200 text-gray-700 font-bold px-3 py-1 rounded-full text-sm">
+                                    No. {cand.nomorUrut}
+                                </div>
+                                
+                                {editingId === cand.id ? (
+                                    <div className="space-y-3 mt-8">
+                                        {/* Input Upload Foto */}
+                                        <div className="p-3 bg-white rounded border border-gray-200">
+                                            <label className="block text-xs font-semibold text-gray-700 mb-2">Foto Paslon (Unggah / URL)</label>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-16 h-16 rounded-full bg-gray-100 border flex items-center justify-center overflow-hidden flex-shrink-0">
+                                                    {editForm.foto ? (
+                                                        <img src={editForm.foto} alt="Preview" className="w-full h-full object-cover" />
+                                                    ) : (
+                                                        <span className="text-xs text-gray-400">Kosong</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex-1 space-y-2">
+                                                    <input 
+                                                        type="file" 
+                                                        accept="image/*" 
+                                                        onChange={handleFileChange}
+                                                        className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" 
+                                                    />
+                                                    {editForm.foto && (
+                                                        <button 
+                                                            type="button" 
+                                                            onClick={() => setEditForm({...editForm, foto: ''})} 
+                                                            className="text-xs text-red-600 underline">
+                                                            Hapus Foto
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <input type="text" className="w-full p-2 border rounded text-sm" placeholder="Nama Ketua" value={editForm.ketua} onChange={e => setEditForm({...editForm, ketua: e.target.value})} />
+                                        <input type="text" className="w-full p-2 border rounded text-sm" placeholder="Nama Wakil" value={editForm.wakil} onChange={e => setEditForm({...editForm, wakil: e.target.value})} />
+                                        <textarea className="w-full p-2 border rounded text-sm h-20" placeholder="Visi" value={editForm.visi} onChange={e => setEditForm({...editForm, visi: e.target.value})}></textarea>
+                                        <textarea className="w-full p-2 border rounded text-sm h-24" placeholder="Misi (pisahkan dengan Enter)" value={editForm.misi} onChange={e => setEditForm({...editForm, misi: e.target.value})}></textarea>
+                                        
+                                        <div className="flex gap-2">
+                                            <button onClick={handleSave} className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm flex-1 font-semibold">Simpan</button>
+                                            <button onClick={() => setEditingId(null)} className="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg text-sm flex-1">Batal</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="mt-8 flex gap-4 items-start">
+                                        <div className="w-20 h-20 rounded-full bg-gray-200 border-2 border-indigo-200 flex items-center justify-center overflow-hidden flex-shrink-0">
+                                            {cand.foto ? (
+                                                <img src={cand.foto} alt={`Paslon ${cand.nomorUrut}`} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <svg className="w-10 h-10 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd"></path></svg>
+                                            )}
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="font-bold text-lg">{cand.ketua} <span className="font-normal text-gray-500 text-sm">sebagai Ketua</span></p>
+                                            <p className="font-bold text-lg mb-3">{cand.wakil} <span className="font-normal text-gray-500 text-sm">sebagai Wakil</span></p>
+                                            
+                                            <div className="text-sm text-gray-700 bg-white p-3 border rounded mb-3">
+                                                <p className="font-semibold">Visi:</p>
+                                                <p className="line-clamp-2 italic mb-2">{cand.visi}</p>
+                                                <p className="font-semibold">Misi:</p>
+                                                <p className="line-clamp-2">{cand.misi.replace(/\n/g, ', ')}</p>
+                                            </div>
+                                            
+                                            <button onClick={() => handleEditClick(cand)} className="w-full border border-indigo-600 text-indigo-600 px-4 py-2 rounded-lg text-sm hover:bg-indigo-50 font-medium">
+                                                Edit Data & Foto
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // Sub-komponen: Kelola DPT
+        function AdminDPTTab({ dpts, showModal }) {
+            const [newDpt, setNewDpt] = useState({ nis: '', nama: '', pin: '' });
+            
+            const handleAddDpt = async (e) => {
+                e.preventDefault();
+                if(!newDpt.nis || !newDpt.nama || !newDpt.pin) return showModal('Error', 'Semua kolom wajib diisi.');
+                
+                try {
+                    const { db, appId, doc, setDoc } = window.firebaseDeps;
+                    const ref = doc(db, 'artifacts', appId, 'public', 'data', 'dpt', `dpt_${newDpt.nis}`);
+                    await setDoc(ref, {
+                        nis: newDpt.nis,
+                        nama: newDpt.nama,
+                        pin: newDpt.pin,
+                        sudahMemilih: false
+                    });
+                    setNewDpt({ nis: '', nama: '', pin: '' });
+                } catch(err) {
+                    showModal('Error', 'Gagal menambah DPT');
+                }
+            };
+
+            const handleDeleteDpt = (id) => {
+                showModal('Hapus', 'Yakin ingin menghapus DPT ini?', 'confirm', async () => {
+                    const { db, appId, doc, deleteDoc } = window.firebaseDeps;
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dpt', id));
+                });
+            };
+
+            const generateRandomPin = () => {
+                const random = Math.floor(100000 + Math.random() * 900000).toString();
+                setNewDpt({...newDpt, pin: random});
+            };
+
+            return (
+                <div className="flex flex-col md:flex-row gap-8">
+                    {/* Form Tambah */}
+                    <div className="w-full md:w-1/3">
+                        <div className="bg-gray-50 p-4 border border-gray-200 rounded-lg">
+                            <h3 className="font-bold text-gray-800 mb-4 border-b pb-2">Tambah Pemilih Baru</h3>
+                            <form onSubmit={handleAddDpt} className="space-y-3">
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-600 block mb-1">NIS</label>
+                                    <input type="text" className="w-full p-2 text-sm border rounded" required value={newDpt.nis} onChange={e=>setNewDpt({...newDpt, nis: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-600 block mb-1">Nama Lengkap</label>
+                                    <input type="text" className="w-full p-2 text-sm border rounded" required value={newDpt.nama} onChange={e=>setNewDpt({...newDpt, nama: e.target.value})} />
+                                </div>
+                                <div>
+                                    <label className="text-xs font-semibold text-gray-600 block mb-1">PIN Akses</label>
+                                    <div className="flex gap-2">
+                                        <input type="text" className="w-full p-2 text-sm border rounded bg-white" required value={newDpt.pin} onChange={e=>setNewDpt({...newDpt, pin: e.target.value})} />
+                                        <button type="button" onClick={generateRandomPin} className="bg-gray-200 px-3 rounded text-xs hover:bg-gray-300" title="Generate Random PIN">Acak</button>
+                                    </div>
+                                </div>
+                                <button type="submit" className="w-full bg-indigo-600 text-white p-2 rounded text-sm font-semibold mt-2 hover:bg-indigo-700">Simpan DPT</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    {/* Tabel Data */}
+                    <div className="w-full md:w-2/3">
+                        <div className="border border-gray-200 rounded-lg overflow-hidden">
+                            <table className="min-w-full divide-y divide-gray-200 text-sm">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">NIS</th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">Nama</th>
+                                        <th className="px-4 py-3 text-left font-medium text-gray-500 uppercase">PIN</th>
+                                        <th className="px-4 py-3 text-center font-medium text-gray-500 uppercase">Status</th>
+                                        <th className="px-4 py-3 text-right font-medium text-gray-500 uppercase">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {dpts.length === 0 && <tr><td colSpan="5" className="text-center py-4 text-gray-500">Belum ada data DPT.</td></tr>}
+                                    {dpts.map(dpt => (
+                                        <tr key={dpt.id} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3 font-medium text-gray-900">{dpt.nis}</td>
+                                            <td className="px-4 py-3 text-gray-600">{dpt.nama}</td>
+                                            <td className="px-4 py-3 text-gray-600 font-mono text-xs">{dpt.pin}</td>
+                                            <td className="px-4 py-3 text-center">
+                                                {dpt.sudahMemilih ? 
+                                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-semibold">Sudah Memilih</span> : 
+                                                    <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-semibold">Belum</span>
+                                                }
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                <button onClick={() => handleDeleteDpt(dpt.id)} className="text-red-600 hover:text-red-900 font-medium text-xs">Hapus</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
